@@ -1,12 +1,7 @@
-const express = require('express')
+const app = require('./app')
+const logger = require('./utils/logger')
+const config = require('./utils/config')
 
-const app = express();
-
-app.get('/', (request, response) => {
-    response.send('<h1>hello world</h1>')
-})
-
-const PORT = 3001
-app.listen(PORT, () => {
-    `The app is listining on the port ${PORT}`
+app.listen(config.PORT, () => {
+    logger.info(`Server running on the port ${config.PORT}`)
 })
