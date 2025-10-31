@@ -74,7 +74,7 @@ test('unique identifier property is id instead of default _id', async () => {
     assert.strictEqual(blogs[0]._id, undefined, 'First blog still has _id');
 })
 
-test.only('title and url properties are missing', async () => {
+test('title and url properties are missing', async () => {
     const newBlog = {
         author: 'Roudne Erern',
         title: 'We are the champions',
@@ -85,6 +85,60 @@ test.only('title and url properties are missing', async () => {
         .send(newBlog)
     assert.strictEqual(response.status, 400, 'Blog without title or url should return 400')
 })
+
+test('a blog be deleted', async () => {
+    const blogAtStart = await helper.blogsInDb()
+    const blogToDelete = blogAtStart[0]
+    const response = await api
+        .delete(`/api/blogs/${blogToDelete.id}`)
+        .expect(204)
+
+    const blogsAtEnd = await helper.blogsInDb()
+    const titles = blogsAtEnd.map(n => n.title)
+    assert(!titles.includes(blogToDelete.title))
+    assert.strictEqual(blogsAtEnd.length, helper.initialBlog.length - 1)
+})
+
+test('likes of a blog can be updated', async () => {
+    const updatedLikes = {
+        likes: 12912
+    }
+    const blogAtStart = await helper.blogsInDb()
+    const blogToUpdate = blogAtStart[0]
+    const response = await api
+        .put(`/api/blogs/${blogToUpdate.id}`)
+        .send(updatedLikes)
+        .expect(200)
+    assert.strictEqual(response.body.likes, updatedLikes.likes)
+    assert.strictEqual(response.body.id, blogToUpdate.id)
+
+    const blogsAtEnd = await helper.blogsInDb()
+    const updatedBlog = blogsAtEnd.find(b => b.id === blogToUpdate.id)
+
+    assert.strictEqual(updatedBlog.likes, updatedLikes.likes)
+
+
+})
+
+test('returns 404 if blog does not exist', async () => {
+    const validNonExistingId = await helper.nonExixtingId()
+
+    await api
+        .put(`/api/blogs/${validNonExistingId}`)
+        .send({ likes: 13 })
+        .expect(404)
+})
+
+test('returns 400 for invalid id', async () => {
+    const invalId = '690494e68135b4a01446a5dw'
+    await api
+        .put(`/api/blogs/${invalId}`)
+        .send({ likes: 12 })
+        .expect(400)
+})
+
+
+
 
 after(async () => {
     await mongoose.connection.close()
