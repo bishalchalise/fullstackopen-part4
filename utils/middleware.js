@@ -11,15 +11,30 @@ const requestLogger = (request, response, next) => {
 const unknownEndpoint = (request, response) => {
     response.status(400).send({ error: 'unknown endpoint' })
 }
-
 const errorHandler = (error, request, response, next) => {
     logger.error(error.message)
+    logger.error(error.name)
 
     if (error.name === 'CastError') {
         return response.status(400).send({ error: 'malformatted id' })
     } else if (error.name === 'ValidationError') {
-        return response.status(400).send({ error: error.message })
+
+        if (error.errors.username && error.errors.username.kind === 'minlength') {
+            return response.status(400).json({ error: 'Username must be at least 3 characters long.' })
+        }
+        const messages = Object.values(error.errors).map(e => e.message)
+        return response.status(400).json({ error: messages.join(', ') })
     }
+
+
+    else if (error.name === 'MongoServerError'
+        && error.message.includes('E11000 duplicate key error')) {
+        return response
+            .status(400)
+            .json({ error: 'expected `username` to be unique' })
+    }
+
+
 
     next()
 }
